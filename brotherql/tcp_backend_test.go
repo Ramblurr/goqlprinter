@@ -1,6 +1,7 @@
 package brotherql
 
 import (
+	"errors"
 	"io"
 	"net"
 	"testing"
@@ -47,5 +48,33 @@ func TestTCPProviderSendsOnlyToConfiguredPrinter(t *testing.T) {
 	got := make([]byte, len("raster job"))
 	if _, err := io.ReadFull(server, got); err != nil || string(got) != "raster job" {
 		t.Fatalf("received %q, %v", got, err)
+	}
+}
+
+func TestTCPBackendReadFailsWithoutWaiting(t *testing.T) {
+	listener, err := net.Listen("tcp4", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer listener.Close()
+
+	provider := NewTCPProvider(listener.Addr().String(), "QL-810W")
+	printers, err := provider.FindPrinters()
+	if err != nil {
+		t.Fatal(err)
+	}
+	backend, err := provider.Connect(printers[0])
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer backend.Close()
+
+	start := time.Now()
+	n, err := backend.Read(make([]byte, 32))
+	if n != 0 || !errors.Is(err, ErrStatusNotSupported) {
+		t.Fatalf("Read = %d, %v; want ErrStatusNotSupported", n, err)
+	}
+	if elapsed := time.Since(start); elapsed > 100*time.Millisecond {
+		t.Errorf("Read took %s, want an immediate failure", elapsed)
 	}
 }
