@@ -52,24 +52,7 @@ func TestPreviewInkImage_IsWhatThePrinterReceives(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			listener, err := net.Listen("tcp4", "127.0.0.1:0")
-			if err != nil {
-				t.Fatal(err)
-			}
-			defer listener.Close()
-			received := make(chan []byte, 1)
-			go func() {
-				conn, err := listener.Accept()
-				if err != nil {
-					received <- nil
-					return
-				}
-				defer conn.Close()
-				_ = conn.SetReadDeadline(time.Now().Add(10 * time.Second))
-				data, _ := io.ReadAll(conn)
-				received <- data
-			}()
-
+			listener, received := listenForPrintJob(t)
 			r := gin.New()
 			h := newSVGPrintHandlers(t, brotherql.NewTCPProvider(listener.Addr().String(), parityModel))
 			r.POST("/api/preview", h.PreviewLabel)
@@ -106,6 +89,30 @@ func TestPreviewInkImage_IsWhatThePrinterReceives(t *testing.T) {
 			}
 		})
 	}
+}
+
+// listenForPrintJob accepts one printer connection on 127.0.0.1 and sends
+// the bytes it received, or nil if the listener closes first.
+func listenForPrintJob(t *testing.T) (net.Listener, <-chan []byte) {
+	t.Helper()
+	listener, err := net.Listen("tcp4", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = listener.Close() })
+	received := make(chan []byte, 1)
+	go func() {
+		conn, err := listener.Accept()
+		if err != nil {
+			received <- nil
+			return
+		}
+		defer conn.Close()
+		_ = conn.SetReadDeadline(time.Now().Add(10 * time.Second))
+		data, _ := io.ReadAll(conn)
+		received <- data
+	}()
+	return listener, received
 }
 
 // faintFillPixels returns a point inside each of paritySVG's two faint
