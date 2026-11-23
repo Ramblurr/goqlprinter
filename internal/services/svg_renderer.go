@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"image"
 	"image/png"
+	"io"
 	"os/exec"
 	"strconv"
 	"strings"
@@ -30,7 +31,7 @@ func NewSVGRenderer(fontDirs []string) (*SVGRenderer, error) {
 }
 
 func (r *SVGRenderer) Render(ctx context.Context, svg string, maxWidth, maxHeight int, scale float64) (image.Image, error) {
-	vbW, vbH, err := svgNaturalSize(svg)
+	vbW, vbH, err := inspectSVG(svg)
 	if err != nil {
 		return nil, err
 	}
@@ -87,36 +88,63 @@ func (r *SVGRenderer) Render(ctx context.Context, svg string, maxWidth, maxHeigh
 	return img, nil
 }
 
-func svgNaturalSize(svg string) (float64, float64, error) {
+// inspectSVG returns the SVG's natural size and rejects references outside the
+// document, because resvg would read any image path on the server.
+func inspectSVG(svg string) (float64, float64, error) {
 	dec := xml.NewDecoder(strings.NewReader(svg))
+	var w, h float64
+	sawRoot := false
 	for {
 		tok, err := dec.Token()
+		if err == io.EOF && sawRoot {
+			return w, h, nil
+		}
 		if err != nil {
 			return 0, 0, fmt.Errorf("SVG parse failed: %w", err)
 		}
-		root, ok := tok.(xml.StartElement)
+		el, ok := tok.(xml.StartElement)
 		if !ok {
 			continue
 		}
-		if root.Name.Local != "svg" {
-			return 0, 0, fmt.Errorf("SVG parse failed: root element is <%s>, want <svg>", root.Name.Local)
-		}
-		attrs := map[string]string{}
-		for _, a := range root.Attr {
-			if a.Name.Space == "" {
-				attrs[a.Name.Local] = a.Value
+		for _, a := range el.Attr {
+			if a.Name.Local == "href" && !isInternalReference(a.Value) {
+				return 0, 0, fmt.Errorf("SVG references %q; only #fragment and data: references are allowed", a.Value)
 			}
 		}
-		if w, h, ok := parseViewBoxSize(attrs["viewBox"]); ok {
-			return w, h, nil
+		if sawRoot {
+			continue
 		}
-		w, errW := parsePixels(attrs["width"])
-		h, errH := parsePixels(attrs["height"])
-		if err := errors.Join(errW, errH); err != nil {
-			return 0, 0, fmt.Errorf("SVG has no viewBox and no usable width/height: %w", err)
+		sawRoot = true
+		if w, h, err = rootSize(el); err != nil {
+			return 0, 0, err
 		}
+	}
+}
+
+func isInternalReference(v string) bool {
+	v = strings.TrimSpace(v)
+	return strings.HasPrefix(v, "#") || strings.HasPrefix(strings.ToLower(v), "data:")
+}
+
+func rootSize(root xml.StartElement) (float64, float64, error) {
+	if root.Name.Local != "svg" {
+		return 0, 0, fmt.Errorf("SVG parse failed: root element is <%s>, want <svg>", root.Name.Local)
+	}
+	attrs := map[string]string{}
+	for _, a := range root.Attr {
+		if a.Name.Space == "" {
+			attrs[a.Name.Local] = a.Value
+		}
+	}
+	if w, h, ok := parseViewBoxSize(attrs["viewBox"]); ok {
 		return w, h, nil
 	}
+	w, errW := parsePixels(attrs["width"])
+	h, errH := parsePixels(attrs["height"])
+	if err := errors.Join(errW, errH); err != nil {
+		return 0, 0, fmt.Errorf("SVG has no viewBox and no usable width/height: %w", err)
+	}
+	return w, h, nil
 }
 
 func parseViewBoxSize(v string) (float64, float64, bool) {
