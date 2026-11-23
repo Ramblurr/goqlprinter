@@ -72,3 +72,7 @@ func newTestHandlersWithError(err error) *api.Handlers {
 	fs := services.NewFontService([]string{})
 	return api.NewHandlers(ps, fs, nil, []services.FontFamily{}, cfg)
 }
+
+func newTestHandlersWithProvider(provider brotherql.BackendProvider) *api.Handlers {
+	return api.NewHandlers(services.NewPrinterService(provider), services.NewFontService(nil), nil, nil, &config.Config{})
+}

@@ -43,7 +43,7 @@ func TestPrintSVGApproved_PrintsTheApprovedInk(t *testing.T) {
 			if w := postJSON(t, r, "/api/print_svg_approved", body); w.Code != http.StatusOK {
 				t.Fatalf("print_svg_approved status = %d, body: %s", w.Code, w.Body.String())
 			}
-			printed := decodePrintedInk(t, <-received, approved.Bounds(), tc.orientation == "rotated")
+			printed := decodePrintedInk(t, <-received, approved.Bounds(), tc.orientation == "rotated", tc.label)
 
 			if !printed.Rect.Eq(approved.Rect) {
 				t.Fatalf("printed ink is %v, approved ink_image is %v", printed.Rect, approved.Rect)

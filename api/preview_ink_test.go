@@ -65,7 +65,7 @@ func TestPreviewInkImage_IsWhatThePrinterReceives(t *testing.T) {
 			if w := postJSON(t, r, "/api/print_svg", body); w.Code != http.StatusOK {
 				t.Fatalf("print_svg status = %d, body: %s", w.Code, w.Body.String())
 			}
-			printed := decodePrintedInk(t, <-received, preview.ink.Bounds(), tc.orientation == "rotated")
+			printed := decodePrintedInk(t, <-received, preview.ink.Bounds(), tc.orientation == "rotated", tc.label)
 
 			if !printed.Rect.Eq(preview.ink.Rect) {
 				t.Fatalf("printed ink is %v, ink_image is %v", printed.Rect, preview.ink.Rect)
@@ -196,26 +196,27 @@ func decodeGrayDataURL(t *testing.T, field, url string) *image.Gray {
 	return gray
 }
 
-// decodePrintedInk turns the raster rows of a Brother QL job back into an
+// decodePrintedInk turns the raster rows of a parityModel job back into an
 // image in the preview's reading orientation: it unpacks PackBits rows,
-// undoes the protocol's horizontal mirror, drops the padding to the full
-// raster width, and undoes the 90 degree counter-clockwise turn applied to
-// rotated labels. Printed dots are black, the rest white.
-func decodePrintedInk(t *testing.T, stream []byte, want image.Rectangle, rotated bool) *image.Gray {
+// undoes the protocol's horizontal mirror, drops brother_ql's right margin
+// for the label and the padding after it, and undoes the 90 degree
+// counter-clockwise turn applied to rotated labels. Printed dots are black,
+// the rest white.
+func decodePrintedInk(t *testing.T, stream []byte, want image.Rectangle, rotated bool, labelID string) *image.Gray {
 	t.Helper()
-	rows := rasterRows(t, stream)
+	rows := rasterRows(t, stream, parityRasterBits/8)
+	rightMargin := brotherQLOffsetR[labelID] + brotherQLAdditionalOffsetR[parityModel]
 
 	headDots := want.Dx()
 	if rotated {
 		headDots = want.Dy()
 	}
-	pad := parityRasterBits - headDots
 	sent := image.NewGray(image.Rect(0, 0, headDots, len(rows)))
 	for y, row := range rows {
 		for bit := range parityRasterBits {
 			dot := row[bit/8]&(0x80>>(bit%8)) != 0
-			x := parityRasterBits - 1 - bit - pad
-			if x < 0 {
+			x := headDots - 1 - bit + rightMargin
+			if x < 0 || x >= headDots {
 				if dot {
 					t.Fatalf("row %d prints raster bit %d, outside the %d dots of the label", y, bit, headDots)
 				}
@@ -239,7 +240,7 @@ func decodePrintedInk(t *testing.T, stream []byte, want image.Rectangle, rotated
 	return out
 }
 
-func rasterRows(t *testing.T, stream []byte) [][]byte {
+func rasterRows(t *testing.T, stream []byte, bytesPerRow int) [][]byte {
 	t.Helper()
 	start := bytes.Index(stream, []byte{0x1b, 0x69, 0x4b, 0x08})
 	if start < 0 {
@@ -258,8 +259,8 @@ func rasterRows(t *testing.T, stream []byte) [][]byte {
 		if compressed {
 			data = unpackBits(data)
 		}
-		if len(data) != parityRasterBits/8 {
-			t.Fatalf("raster row %d has %d bytes, want %d", len(rows), len(data), parityRasterBits/8)
+		if len(data) != bytesPerRow {
+			t.Fatalf("raster row %d has %d bytes, want %d", len(rows), len(data), bytesPerRow)
 		}
 		rows = append(rows, data)
 		i += 3 + n
