@@ -101,8 +101,8 @@ func TestPrintPNGRaw_LabelWiderThanTheHeadFails(t *testing.T) {
 		t.Fatalf("print_png_raw status = %d, body: %s; want 500 naming the raster width", w.Code, w.Body.String())
 	}
 	_ = listener.Close()
-	if stream := <-received; bytes.Contains(stream, []byte{0x1b, 0x69, 0x4b, 0x08}) {
-		t.Fatalf("printer received a raster job of %d bytes", len(stream))
+	if stream := <-received; len(stream) != 0 {
+		t.Fatalf("printer received %d bytes for a label wider than the head; want none", len(stream))
 	}
 }
 
