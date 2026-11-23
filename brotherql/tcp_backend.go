@@ -45,7 +45,7 @@ func (p *TCPProvider) Connect(printer PrinterInfo) (Backend, error) {
 	}, nil
 }
 
-func (p *TCPProvider) SupportsStatus() bool { return false }
+func (p *TCPProvider) SupportsStatus() bool { return true }
 
 type tcpBackend struct {
 	net.Conn
