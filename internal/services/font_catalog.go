@@ -23,15 +23,12 @@ type FontFamily struct {
 	Description string     `json:"description"`
 }
 
-// FontAxis is a variable font axis range.
 type FontAxis struct {
 	Tag string  `json:"tag"`
 	Min float64 `json:"min"`
 	Max float64 `json:"max"`
 }
 
-// LoadFontCatalog reads and validates the font catalog JSON at path. An empty
-// path yields no families.
 func LoadFontCatalog(path string) ([]FontFamily, error) {
 	if path == "" {
 		return []FontFamily{}, nil
