@@ -76,3 +76,32 @@ func TestGetStatus_UsesBackendStatusProvider(t *testing.T) {
 		t.Errorf("handler wrote %d raw commands to a backend that reports status itself", backend.writes)
 	}
 }
+
+type osStatusBackend struct{ writes int }
+
+func (b *osStatusBackend) Write(p []byte) (int, error) { b.writes++; return len(p), nil }
+func (b *osStatusBackend) Read(p []byte) (int, error)  { return 0, io.EOF }
+func (b *osStatusBackend) Close() error                { return nil }
+func (b *osStatusBackend) GetStatus() (brotherql.PrinterStatus, error) {
+	return brotherql.PrinterStatus{Ready: true}, nil
+}
+
+func TestGetStatus_KeepsRawStatusRequestForOSStatusProviders(t *testing.T) {
+	backend := &osStatusBackend{}
+	h := api.NewHandlers(
+		services.NewPrinterService(&singleBackendProvider{backend: backend}),
+		services.NewFontService([]string{}),
+		&config.Config{},
+	)
+	r := gin.New()
+	r.POST("/api/status", h.GetStatus)
+
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/api/status", strings.NewReader(`{"printer":"QL-810W"}`))
+	req.Header.Set("Content-Type", "application/json")
+	r.ServeHTTP(w, req)
+
+	if backend.writes != 1 {
+		t.Errorf("handler sent %d raw status requests, want 1", backend.writes)
+	}
+}
