@@ -9,6 +9,7 @@ import (
 	"image"
 	"image/png"
 	"io"
+	"os"
 	"os/exec"
 	"strconv"
 	"strings"
@@ -65,7 +66,14 @@ func (r *SVGRenderer) Render(ctx context.Context, svg string, maxWidth, maxHeigh
 	for _, dir := range r.fontDirs {
 		args = append(args, "--use-fonts-dir", dir)
 	}
-	args = append(args, "-", "-c")
+	// resvg resolves any href it does not parse as data: as a path under
+	// --resources-dir, or under the working directory when that is unset.
+	resources, err := os.MkdirTemp("", "goqlprinter-resvg-")
+	if err != nil {
+		return nil, fmt.Errorf("SVG rendering needs an empty resources directory: %w", err)
+	}
+	defer os.RemoveAll(resources)
+	args = append(args, "--resources-dir", resources, "-", "-c")
 
 	ctx, cancel := context.WithTimeout(ctx, svgRenderTimeout)
 	defer cancel()
