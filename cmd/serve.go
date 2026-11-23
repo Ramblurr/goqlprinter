@@ -122,6 +122,7 @@ func setupApp(useAuth bool) (*icfg.Config, *gin.Engine, error) {
 		apiRoutes.Use(api.TokenAuth(cfg.Server.Token))
 		slog.Info("API token authentication enabled")
 	}
+	apiRoutes.Use(api.LimitRequestBody(api.MaxRequestBodyBytes))
 	{
 		apiRoutes.GET("/config", handlers.GetConfig)
 		apiRoutes.GET("/printers", handlers.GetPrinters)
