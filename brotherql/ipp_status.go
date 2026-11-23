@@ -39,8 +39,6 @@ var ippReasonErrors = map[string]string{
 
 var mediaSizePattern = regexp.MustCompile(`_([0-9.]+)x([0-9.]+)mm$`)
 
-// queryIPPStatus asks the printer at url (http://host:631/path) for its state
-// with an IPP Get-Printer-Attributes request.
 func queryIPPStatus(url string) (PrinterStatus, error) {
 	req := ipp.NewRequest(ipp.OperationGetPrinterAttributes, 1)
 	req.OperationAttributes[ipp.AttributePrinterURI] = "ipp://" + strings.TrimPrefix(url, "http://")
@@ -76,8 +74,6 @@ func queryIPPStatus(url string) (PrinterStatus, error) {
 	return statusFromIPP(ippResp.PrinterAttributes[0]), nil
 }
 
-// statusFromIPP maps IPP printer attributes onto the fields ParseStatusResponse
-// fills from an ESC i S reply, so the frontend reads both the same way.
 func statusFromIPP(attrs ipp.Attributes) PrinterStatus {
 	status := PrinterStatus{
 		ModelName:  strings.TrimPrefix(ippString(attrs, ipp.AttributePrinterMakeAndModel), "Brother "),
@@ -165,8 +161,6 @@ func withoutLanguage(v string) string {
 	return text[2 : 2+n]
 }
 
-// parseMediaSize reads the dimensions from a PWG media name such as
-// roll_current_62x29mm. A length of 0 means continuous tape.
 func parseMediaSize(media string) (width, length int) {
 	m := mediaSizePattern.FindStringSubmatch(media)
 	if m == nil {
