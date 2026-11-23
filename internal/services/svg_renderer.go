@@ -16,15 +16,11 @@ import (
 
 const svgRenderTimeout = 30 * time.Second
 
-// SVGRenderer rasterizes SVG with the resvg binary. Text can use only the
-// fonts in its font directories; system fonts are never loaded.
 type SVGRenderer struct {
 	resvg    string
 	fontDirs []string
 }
 
-// NewSVGRenderer finds resvg on PATH and returns a renderer that loads fonts
-// from fontDirs.
 func NewSVGRenderer(fontDirs []string) (*SVGRenderer, error) {
 	path, err := exec.LookPath("resvg")
 	if err != nil {
@@ -33,9 +29,6 @@ func NewSVGRenderer(fontDirs []string) (*SVGRenderer, error) {
 	return &SVGRenderer{resvg: path, fontDirs: fontDirs}, nil
 }
 
-// Render rasterizes svg on a white background at its natural viewBox size
-// times scale, shrunk to fit maxWidth and maxHeight (0 means unconstrained)
-// with its aspect ratio preserved.
 func (r *SVGRenderer) Render(ctx context.Context, svg string, maxWidth, maxHeight int, scale float64) (image.Image, error) {
 	vbW, vbH, err := svgNaturalSize(svg)
 	if err != nil {
@@ -94,8 +87,6 @@ func (r *SVGRenderer) Render(ctx context.Context, svg string, maxWidth, maxHeigh
 	return img, nil
 }
 
-// svgNaturalSize returns the root <svg> viewBox size, or its width and height
-// when it has no usable viewBox.
 func svgNaturalSize(svg string) (float64, float64, error) {
 	dec := xml.NewDecoder(strings.NewReader(svg))
 	for {
