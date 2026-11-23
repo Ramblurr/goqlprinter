@@ -133,6 +133,7 @@ func setupApp(useAuth bool) (*icfg.Config, *gin.Engine, error) {
 		apiRoutes.POST("/print_png_raw", handlers.PrintPNGRaw)
 		apiRoutes.POST("/print_qr", handlers.PrintQR)
 		apiRoutes.POST("/print_svg", handlers.PrintSVG)
+		apiRoutes.POST("/print_svg_approved", handlers.PrintSVGApproved)
 		apiRoutes.POST("/preview", handlers.PreviewLabel)
 		apiRoutes.GET("/fonts", handlers.GetFonts)
 		apiRoutes.POST("/status", handlers.GetStatus)

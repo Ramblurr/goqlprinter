@@ -65,13 +65,17 @@ func (h *Handlers) PrintSVG(c *gin.Context) {
 		return
 	}
 
+	h.printSVGLabel(c, req, img, label)
+}
+
+func (h *Handlers) printSVGLabel(c *gin.Context, req PrintSVGRequest, img *image.Gray, label brotherql.LabelSize) {
 	if req.Printer == printerFile {
 		saveDebugOutput(c, img, "label_svg", req.Model, req.Orientation)
 		return
 	}
 
 	printImg := rotateForPrinter(img, req.Orientation)
-	err = services.ConnectToPrinter(h.Printers, req.Printer, req.Model, func(backend brotherql.Backend, model string) error {
+	err := services.ConnectToPrinter(h.Printers, req.Printer, req.Model, func(backend brotherql.Backend, model string) error {
 		printerDev := brotherql.NewBrotherQL(model, backend)
 		return printerDev.Print(printImg, label)
 	})

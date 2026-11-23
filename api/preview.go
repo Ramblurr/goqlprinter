@@ -137,16 +137,16 @@ func (h *Handlers) PreviewLabel(c *gin.Context) {
 		}
 	}
 
-	imageURL, errImage := pngDataURL(img)
-	inkURL, errInk := pngDataURL(brotherql.InkMask(img))
+	imagePNG, errImage := encodePNG(img)
+	ink, errInk := inkPNG(img)
 	if errImage != nil || errInk != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to encode image"})
 		return
 	}
 
 	c.JSON(http.StatusOK, PreviewResponse{
-		Image:           imageURL,
-		InkImage:        inkURL,
+		Image:           pngDataURL(imagePNG),
+		InkImage:        pngDataURL(ink),
 		Width:           img.Bounds().Dx(),
 		Height:          img.Bounds().Dy(),
 		PrintableWidth:  label.DotsPrintableWidth,
@@ -154,10 +154,20 @@ func (h *Handlers) PreviewLabel(c *gin.Context) {
 	})
 }
 
-func pngDataURL(img image.Image) (string, error) {
+// inkPNG is the ink_image PNG for a rendered label: the bytes a human
+// approves and /api/print_svg_approved hashes.
+func inkPNG(img *image.Gray) ([]byte, error) {
+	return encodePNG(brotherql.InkMask(img))
+}
+
+func encodePNG(img image.Image) ([]byte, error) {
 	var buf bytes.Buffer
 	if err := png.Encode(&buf, img); err != nil {
-		return "", err
+		return nil, err
 	}
-	return "data:image/png;base64," + base64.StdEncoding.EncodeToString(buf.Bytes()), nil
+	return buf.Bytes(), nil
+}
+
+func pngDataURL(data []byte) string {
+	return "data:image/png;base64," + base64.StdEncoding.EncodeToString(data)
 }
