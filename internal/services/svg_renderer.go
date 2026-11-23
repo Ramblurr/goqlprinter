@@ -31,13 +31,13 @@ func NewSVGRenderer(fontDirs []string) (*SVGRenderer, error) {
 }
 
 func (r *SVGRenderer) Render(ctx context.Context, svg string, maxWidth, maxHeight int, scale float64) (image.Image, error) {
-	vbW, vbH, err := inspectSVG(svg)
+	natW, natH, err := inspectSVG(svg)
 	if err != nil {
 		return nil, err
 	}
 
-	w := vbW * scale
-	h := vbH * scale
+	w := natW * scale
+	h := natH * scale
 	if maxWidth > 0 && w > float64(maxWidth) {
 		h *= float64(maxWidth) / w
 		w = float64(maxWidth)
@@ -49,7 +49,7 @@ func (r *SVGRenderer) Render(ctx context.Context, svg string, maxWidth, maxHeigh
 
 	iw, ih := int(w), int(h)
 	if iw <= 0 || ih <= 0 {
-		return nil, fmt.Errorf("SVG has zero dimensions after scaling (viewBox: %.0fx%.0f, scale: %.2f)", vbW, vbH, scale)
+		return nil, fmt.Errorf("SVG has zero dimensions after scaling (size: %gx%g, scale: %.2f)", natW, natH, scale)
 	}
 
 	args := []string{
@@ -126,6 +126,8 @@ func isInternalReference(v string) bool {
 	return strings.HasPrefix(v, "#") || strings.HasPrefix(strings.ToLower(v), "data:")
 }
 
+// rootSize returns the size resvg fits into -w/-h: the root viewport when
+// width and height are both pixel lengths, else the viewBox.
 func rootSize(root xml.StartElement) (float64, float64, error) {
 	if root.Name.Local != "svg" {
 		return 0, 0, fmt.Errorf("SVG parse failed: root element is <%s>, want <svg>", root.Name.Local)
@@ -136,15 +138,15 @@ func rootSize(root xml.StartElement) (float64, float64, error) {
 			attrs[a.Name.Local] = a.Value
 		}
 	}
+	w, errW := parsePixels(attrs["width"])
+	h, errH := parsePixels(attrs["height"])
+	if errW == nil && errH == nil {
+		return w, h, nil
+	}
 	if w, h, ok := parseViewBoxSize(attrs["viewBox"]); ok {
 		return w, h, nil
 	}
-	w, errW := parsePixels(attrs["width"])
-	h, errH := parsePixels(attrs["height"])
-	if err := errors.Join(errW, errH); err != nil {
-		return 0, 0, fmt.Errorf("SVG has no viewBox and no usable width/height: %w", err)
-	}
-	return w, h, nil
+	return 0, 0, fmt.Errorf("SVG has no viewBox and no usable width/height: %w", errors.Join(errW, errH))
 }
 
 func parseViewBoxSize(v string) (float64, float64, bool) {
