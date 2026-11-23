@@ -18,6 +18,15 @@ definitions:
           type: string
         type: array
     type: object
+  api.InkMismatchResponse:
+    properties:
+      approved_ink_sha256:
+        type: string
+      current_ink_sha256:
+        type: string
+      error:
+        type: string
+    type: object
   api.PreviewRequest:
     properties:
       custom_height_mm:
@@ -170,6 +179,41 @@ definitions:
         type: string
     required:
     - label_size
+    type: object
+  api.PrintSVGApprovedRequest:
+    description: Request body for printing an SVG label only if its ink matches an
+      approved preview
+    properties:
+      approved_ink_sha256:
+        description: Lowercase hex SHA-256 of the PNG bytes in /api/preview's ink_image
+          for the same request
+        type: string
+      content_rotation:
+        type: number
+      custom_height_mm:
+        type: number
+      horizontal_alignment:
+        type: string
+      label_size:
+        type: string
+      model:
+        description: Optional
+        type: string
+      orientation:
+        type: string
+      printer:
+        description: Optional
+        type: string
+      svg_data:
+        type: string
+      svg_scale:
+        type: number
+      vertical_alignment:
+        type: string
+    required:
+    - approved_ink_sha256
+    - label_size
+    - svg_data
     type: object
   api.PrintSVGRequest:
     description: Request body for printing SVG labels
@@ -641,6 +685,54 @@ paths:
               type: string
             type: object
       summary: Print SVG label
+      tags:
+      - print
+  /print_svg_approved:
+    post:
+      consumes:
+      - application/json
+      description: Renders the SVG once and prints it only if the SHA-256 of its ink_image
+        PNG equals approved_ink_sha256. Preview with the same fields; preview's text_rotation
+        is this request's content_rotation.
+      parameters:
+      - description: SVG print request with the approved ink hash
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/api.PrintSVGApprovedRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/api.InkMismatchResponse'
+        "413":
+          description: Request Entity Too Large
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Print an approved SVG label
       tags:
       - print
   /printers:

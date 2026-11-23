@@ -428,6 +428,76 @@ const docTemplate = `{
                 }
             }
         },
+        "/print_svg_approved": {
+            "post": {
+                "description": "Renders the SVG once and prints it only if the SHA-256 of its ink_image PNG equals approved_ink_sha256. Preview with the same fields; preview's text_rotation is this request's content_rotation.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "print"
+                ],
+                "summary": "Print an approved SVG label",
+                "parameters": [
+                    {
+                        "description": "SVG print request with the approved ink hash",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/api.PrintSVGApprovedRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/api.InkMismatchResponse"
+                        }
+                    },
+                    "413": {
+                        "description": "Request Entity Too Large",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/printers": {
             "get": {
                 "description": "Returns available printers",
@@ -745,6 +815,20 @@ const docTemplate = `{
                 }
             }
         },
+        "api.InkMismatchResponse": {
+            "type": "object",
+            "properties": {
+                "approved_ink_sha256": {
+                    "type": "string"
+                },
+                "current_ink_sha256": {
+                    "type": "string"
+                },
+                "error": {
+                    "type": "string"
+                }
+            }
+        },
         "api.PreviewRequest": {
             "type": "object",
             "required": [
@@ -960,6 +1044,53 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "text_rotation": {
+                    "type": "number"
+                },
+                "vertical_alignment": {
+                    "type": "string"
+                }
+            }
+        },
+        "api.PrintSVGApprovedRequest": {
+            "description": "Request body for printing an SVG label only if its ink matches an approved preview",
+            "type": "object",
+            "required": [
+                "approved_ink_sha256",
+                "label_size",
+                "svg_data"
+            ],
+            "properties": {
+                "approved_ink_sha256": {
+                    "description": "Lowercase hex SHA-256 of the PNG bytes in /api/preview's ink_image for the same request",
+                    "type": "string"
+                },
+                "content_rotation": {
+                    "type": "number"
+                },
+                "custom_height_mm": {
+                    "type": "number"
+                },
+                "horizontal_alignment": {
+                    "type": "string"
+                },
+                "label_size": {
+                    "type": "string"
+                },
+                "model": {
+                    "description": "Optional",
+                    "type": "string"
+                },
+                "orientation": {
+                    "type": "string"
+                },
+                "printer": {
+                    "description": "Optional",
+                    "type": "string"
+                },
+                "svg_data": {
+                    "type": "string"
+                },
+                "svg_scale": {
                     "type": "number"
                 },
                 "vertical_alignment": {

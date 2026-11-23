@@ -230,9 +230,14 @@ The server exposes a REST API at port 8000 (default):
 | POST | `/api/print` | Print text label |
 | POST | `/api/print_qr` | Print QR code |
 | POST | `/api/print_svg` | Print SVG |
+| POST | `/api/print_svg_approved` | Print SVG only if its ink matches an approved preview |
 | POST | `/api/print_png` | Print PNG |
 | POST | `/api/preview` | Get PNG preview and the dots that will print (`ink_image`) |
 | POST | `/api/status` | Query printer status |
+
+To print exactly what someone approved, call `/api/preview`, show them `ink_image`, and send the lowercase hex SHA-256 of its PNG bytes (the base64-decoded data URI payload) as `approved_ink_sha256` to `/api/print_svg_approved` with the same fields. Preview's `text_rotation` is `content_rotation` there. The server renders the label once and prints it only if its ink hashes the same; otherwise it answers 409 with both hashes and prints nothing.
+
+Request bodies on `/api` are limited to 8 MiB; larger ones get 413.
 
 Swagger UI available at `/swagger/index.html`.
 

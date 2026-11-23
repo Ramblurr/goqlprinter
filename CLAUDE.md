@@ -67,6 +67,7 @@ Config priority (low→high):
 | GET | `/api/events` | SSE printer status stream |
 | POST | `/api/print` | Print text/SVG label |
 | POST | `/api/print_svg` | Print SVG (rendered by resvg) |
+| POST | `/api/print_svg_approved` | Print SVG only if its ink PNG hashes to `approved_ink_sha256` (409 otherwise) |
 | POST | `/api/print_png` | Print base64 PNG |
 | POST | `/api/print_png_raw` | Print uploaded PNG |
 | POST | `/api/print_qr` | Print QR code |

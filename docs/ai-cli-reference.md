@@ -43,6 +43,7 @@ GUI builds need the frontend built first. Linux: `go build -tags "gui desktop pr
 | GET | `/api/events` | SSEHub | Server-Sent Events for printer status |
 | POST | `/api/print` | PrintLabel | Print text/SVG label |
 | POST | `/api/print_svg` | PrintSVG | Print SVG (rendered by resvg) |
+| POST | `/api/print_svg_approved` | PrintSVGApproved | Print SVG only if its ink PNG hashes to `approved_ink_sha256` (409 otherwise) |
 | POST | `/api/print_png` | PrintPNGLabel | Print base64 PNG |
 | POST | `/api/print_png_raw` | PrintPNGRaw | Print uploaded PNG file |
 | POST | `/api/print_qr` | PrintQR | Generate + print QR code |
