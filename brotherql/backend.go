@@ -8,6 +8,12 @@ type Backend interface {
 	Close() error
 }
 
+// IPPStatusProvider is for network backends whose status comes over IPP
+// because the raw print port never answers ESC i S.
+type IPPStatusProvider interface {
+	IPPStatus() (PrinterStatus, error)
+}
+
 // StatusProvider for backends that support status queries
 type StatusProvider interface {
 	// GetStatus returns printer status (Windows/macOS use OS APIs)

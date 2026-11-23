@@ -25,7 +25,7 @@ type statusProvidingBackend struct {
 func (b *statusProvidingBackend) Write(p []byte) (int, error) { b.writes++; return len(p), nil }
 func (b *statusProvidingBackend) Read(p []byte) (int, error)  { return 0, io.EOF }
 func (b *statusProvidingBackend) Close() error                { return nil }
-func (b *statusProvidingBackend) GetStatus() (brotherql.PrinterStatus, error) {
+func (b *statusProvidingBackend) IPPStatus() (brotherql.PrinterStatus, error) {
 	return b.status, nil
 }
 
@@ -41,7 +41,7 @@ func (p *singleBackendProvider) Connect(brotherql.PrinterInfo) (brotherql.Backen
 }
 func (p *singleBackendProvider) SupportsStatus() bool { return true }
 
-func TestGetStatus_UsesBackendStatusProvider(t *testing.T) {
+func TestGetStatus_UsesBackendIPPStatus(t *testing.T) {
 	want := brotherql.PrinterStatus{
 		Ready: true, ModelName: "QL-810W",
 		MediaType: "Continuous length tape", MediaWidth: 12,

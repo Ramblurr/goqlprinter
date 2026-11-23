@@ -21,8 +21,8 @@ var statusCmd = &cobra.Command{
 
 		var result brotherql.PrinterStatus
 		err := isvc.ConnectToPrinter(ps, printer, flagModel, func(backend brotherql.Backend, model string) error {
-			if sp, ok := backend.(brotherql.StatusProvider); ok {
-				status, err := sp.GetStatus()
+			if sp, ok := backend.(brotherql.IPPStatusProvider); ok {
+				status, err := sp.IPPStatus()
 				result = status
 				return err
 			}

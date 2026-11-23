@@ -52,8 +52,7 @@ type tcpBackend struct {
 	ippURL string
 }
 
-// GetStatus asks over IPP because the printer never answers ESC i S on the raw port.
-func (b *tcpBackend) GetStatus() (PrinterStatus, error) {
+func (b *tcpBackend) IPPStatus() (PrinterStatus, error) {
 	return queryIPPStatus(b.ippURL)
 }
 
