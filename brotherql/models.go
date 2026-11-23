@@ -5,6 +5,9 @@ import (
 	"fmt"
 )
 
+// MaxLabelLengthMM is the longest label any supported QL printer prints.
+const MaxLabelLengthMM = 1000
+
 // PrinterModel holds model-specific protocol parameters.
 type PrinterModel struct {
 	Name                string

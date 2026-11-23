@@ -142,6 +142,10 @@ does not apply to SVG. Generic families map to DejaVu (`sans-serif` and the defa
 to DejaVu Sans, `serif` to DejaVu Serif, `monospace` to DejaVu Sans Mono), so include
 DejaVu in `app.svg_font_dirs`. `app.font_catalog` optionally names a JSON file
 describing those families; `GET /api/fonts` returns it as `families`.
+An SVG label on endless tape grows with the design up to 1 m, the longest label
+the printers print, and `custom_height_mm` above 1000 is refused. At most two SVGs
+render at once. The `ink_image` of `POST /api/preview` shows exactly the dots that
+will print: every pixel darker than 250 of 255 prints as solid black.
 
 ## CLI Usage
 

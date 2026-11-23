@@ -101,23 +101,22 @@ func (h *Handlers) processSVG(ctx context.Context, req PrintSVGRequest, label br
 	// tapeLengthDots: custom > label-defined > 0 (dynamic).
 	var tapeLengthDots int
 	if req.CustomHeightMM > 0 && !label.IsDieCut {
+		if req.CustomHeightMM > brotherql.MaxLabelLengthMM {
+			return nil, fmt.Errorf("custom_height_mm %g exceeds the %d mm the printer can print", req.CustomHeightMM, brotherql.MaxLabelLengthMM)
+		}
 		tapeLengthDots = mmToDots(req.CustomHeightMM)
 	} else {
 		tapeLengthDots = label.DotsPrintableHeight // 0 for endless tape
 	}
 
-	// Determine rendering constraints — swapped when rotated.
-	var maxWidth, maxHeight int
+	// Endless tape grows with the design up to the longest label, padding included.
+	maxTapeDots := tapeLengthDots
+	if maxTapeDots == 0 {
+		maxTapeDots = mmToDots(brotherql.MaxLabelLengthMM) - 2*defaultPadding
+	}
+	maxWidth, maxHeight := printHeadDots, maxTapeDots
 	if isRotated {
-		if tapeLengthDots > 0 {
-			maxWidth = tapeLengthDots
-		}
-		maxHeight = printHeadDots
-	} else {
-		maxWidth = printHeadDots
-		if tapeLengthDots > 0 {
-			maxHeight = tapeLengthDots
-		}
+		maxWidth, maxHeight = maxTapeDots, printHeadDots
 	}
 
 	svgImg, err := h.SVG.Render(ctx, req.SVGData, maxWidth, maxHeight, scale)

@@ -16,11 +16,18 @@ import (
 	"time"
 )
 
-const svgRenderTimeout = 30 * time.Second
+const (
+	svgRenderTimeout = 30 * time.Second
+	// maxConcurrentRenders keeps a burst of previews from starving the host,
+	// since each resvg process holds its whole RGBA canvas in memory.
+	maxConcurrentRenders = 2
+	maxStderrBytes       = 16 << 10
+)
 
 type SVGRenderer struct {
 	resvg    string
 	fontDirs []string
+	slots    chan struct{}
 }
 
 func NewSVGRenderer(fontDirs []string) (*SVGRenderer, error) {
@@ -28,9 +35,11 @@ func NewSVGRenderer(fontDirs []string) (*SVGRenderer, error) {
 	if err != nil {
 		return nil, fmt.Errorf("SVG rendering needs the resvg binary on PATH: %w", err)
 	}
-	return &SVGRenderer{resvg: path, fontDirs: fontDirs}, nil
+	return &SVGRenderer{resvg: path, fontDirs: fontDirs, slots: make(chan struct{}, maxConcurrentRenders)}, nil
 }
 
+// Render draws svg at its natural size times scale, shrunk to fit within
+// maxWidth x maxHeight.
 func (r *SVGRenderer) Render(ctx context.Context, svg string, maxWidth, maxHeight int, scale float64) (image.Image, error) {
 	natW, natH, err := inspectSVG(svg)
 	if err != nil {
@@ -39,11 +48,11 @@ func (r *SVGRenderer) Render(ctx context.Context, svg string, maxWidth, maxHeigh
 
 	w := natW * scale
 	h := natH * scale
-	if maxWidth > 0 && w > float64(maxWidth) {
+	if w > float64(maxWidth) {
 		h *= float64(maxWidth) / w
 		w = float64(maxWidth)
 	}
-	if maxHeight > 0 && h > float64(maxHeight) {
+	if h > float64(maxHeight) {
 		w *= float64(maxHeight) / h
 		h = float64(maxHeight)
 	}
@@ -66,6 +75,16 @@ func (r *SVGRenderer) Render(ctx context.Context, svg string, maxWidth, maxHeigh
 	for _, dir := range r.fontDirs {
 		args = append(args, "--use-fonts-dir", dir)
 	}
+
+	ctx, cancel := context.WithTimeout(ctx, svgRenderTimeout)
+	defer cancel()
+	select {
+	case r.slots <- struct{}{}:
+		defer func() { <-r.slots }()
+	case <-ctx.Done():
+		return nil, fmt.Errorf("no SVG renderer became free: %w", ctx.Err())
+	}
+
 	// resvg resolves any href it does not parse as data: as a path under
 	// --resources-dir, or under the working directory when that is unset.
 	resources, err := os.MkdirTemp("", "goqlprinter-resvg-")
@@ -75,25 +94,54 @@ func (r *SVGRenderer) Render(ctx context.Context, svg string, maxWidth, maxHeigh
 	defer os.RemoveAll(resources)
 	args = append(args, "--resources-dir", resources, "-", "-c")
 
-	ctx, cancel := context.WithTimeout(ctx, svgRenderTimeout)
-	defer cancel()
 	cmd := exec.CommandContext(ctx, r.resvg, args...)
 	cmd.Stdin = strings.NewReader(svg)
-	var stdout, stderr bytes.Buffer
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
+	// resvg may round each side up by one pixel; the slack covers PNG framing.
+	stdout := &cappedBuffer{limit: 4*(iw+1)*(ih+1) + 1<<20}
+	stderr := &cappedBuffer{limit: maxStderrBytes}
+	cmd.Stdout = stdout
+	cmd.Stderr = stderr
 	if err := cmd.Run(); err != nil {
 		if ctx.Err() != nil {
 			return nil, fmt.Errorf("resvg did not finish: %w", ctx.Err())
 		}
-		return nil, fmt.Errorf("resvg failed: %w: %s", err, strings.TrimSpace(stderr.String()))
+		return nil, fmt.Errorf("resvg failed: %w: %s", err, stderr)
+	}
+	if stdout.overflowed {
+		return nil, fmt.Errorf("resvg output exceeds %d bytes, more than an uncompressed %dx%d PNG", stdout.limit, iw, ih)
 	}
 
-	img, err := png.Decode(&stdout)
+	img, err := png.Decode(&stdout.buf)
 	if err != nil {
 		return nil, fmt.Errorf("resvg output is not a PNG: %w", err)
 	}
 	return img, nil
+}
+
+// cappedBuffer keeps the first limit bytes written to it and discards the
+// rest, so resvg never blocks on a full pipe and never grows server memory
+// past limit.
+type cappedBuffer struct {
+	buf        bytes.Buffer
+	limit      int
+	overflowed bool
+}
+
+func (b *cappedBuffer) Write(p []byte) (int, error) {
+	if room := b.limit - b.buf.Len(); len(p) > room {
+		b.overflowed = true
+		b.buf.Write(p[:room])
+		return len(p), nil
+	}
+	return b.buf.Write(p)
+}
+
+func (b *cappedBuffer) String() string {
+	s := strings.TrimSpace(b.buf.String())
+	if b.overflowed {
+		s += " [truncated]"
+	}
+	return s
 }
 
 // inspectSVG returns the SVG's natural size and rejects references outside the
