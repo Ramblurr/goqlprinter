@@ -136,3 +136,48 @@ func TestPreviewSVG_RotatedLaysLandscapeDesignAlongTape(t *testing.T) {
 		t.Fatalf("ink pixels = %d, want the full 320x106 design", got)
 	}
 }
+
+func inkBounds(img *image.Gray) image.Rectangle {
+	var r image.Rectangle
+	for y := img.Rect.Min.Y; y < img.Rect.Max.Y; y++ {
+		for x := img.Rect.Min.X; x < img.Rect.Max.X; x++ {
+			if img.GrayAt(x, y).Y < 128 {
+				r = r.Union(image.Rect(x, y, x+1, y+1))
+			}
+		}
+	}
+	return r
+}
+
+func TestPreviewSVG_SizesDesignByItsRootViewport(t *testing.T) {
+	t.Parallel()
+
+	h := newSVGTestHandlers(t, nil)
+	r := gin.New()
+	r.POST("/api/preview", h.PreviewLabel)
+
+	// The oversized rect inks every pixel of the root viewport, so the ink
+	// bounds are the size the design was rendered at.
+	const fill = `<rect x="-5000" y="-5000" width="10000" height="10000"/>`
+	for _, tc := range []struct {
+		name, root string
+		scale      float64
+		w, h       int
+	}{
+		{"viewport and viewBox disagree", `width="200" height="100" viewBox="0 0 100 100"`, 1, 200, 100},
+		{"viewport with svg_scale", `width="150" height="40" viewBox="0 0 300 80"`, 2, 300, 80},
+		{"px viewport without viewBox", `width="300px" height="80px"`, 1, 300, 80},
+		{"viewBox without viewport", `viewBox="0 0 300 80"`, 1, 300, 80},
+		{"percent viewport uses viewBox", `width="100%" height="100%" viewBox="0 0 300 80"`, 1, 300, 80},
+		{"mm viewport uses viewBox", `width="62mm" height="16mm" viewBox="0 0 310 80"`, 1, 310, 80},
+		{"wider than the print head", `width="1392" height="200"`, 1, 696, 100},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			svg := `<svg xmlns="http://www.w3.org/2000/svg" ` + tc.root + `>` + fill + `</svg>`
+			img := previewSVG(t, r, map[string]any{"label_size": "62", "svg_scale": tc.scale, "svg_data": svg})
+			if got := inkBounds(img).Size(); got != image.Pt(tc.w, tc.h) {
+				t.Fatalf("design rendered at %v, want %dx%d", got, tc.w, tc.h)
+			}
+		})
+	}
+}
