@@ -189,3 +189,16 @@ func TestQueryIPPStatusRejectsHTTPError(t *testing.T) {
 		t.Fatal("queryIPPStatus accepted an HTTP 404")
 	}
 }
+
+func TestStatusFromIPPDecodesTextWithLanguage(t *testing.T) {
+	attrs := ipp.Attributes{
+		"printer-state": {{Tag: ipp.TagEnum, Value: 3}},
+		"printer-make-and-model": {{
+			Tag:   ipp.TagTextLang,
+			Value: "\x00\x05en-US\x00\x0fBrother QL-810W",
+		}},
+	}
+	if got := statusFromIPP(attrs).ModelName; got != "QL-810W" {
+		t.Errorf("ModelName = %q, want QL-810W", got)
+	}
+}
