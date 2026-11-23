@@ -7,6 +7,17 @@ definitions:
       default_printer:
         $ref: '#/definitions/services.FoundPrinter'
     type: object
+  api.FontsResponse:
+    properties:
+      families:
+        items:
+          $ref: '#/definitions/services.FontFamily'
+        type: array
+      fonts:
+        items:
+          type: string
+        type: array
+    type: object
   api.PreviewRequest:
     properties:
       custom_height_mm:
@@ -268,10 +279,18 @@ definitions:
         type: string
       defaultPrinter:
         type: string
+      fontCatalog:
+        type: string
       fontDirs:
         items:
           type: string
         type: array
+      svgfontDirs:
+        items:
+          type: string
+        type: array
+      tcpaddress:
+        type: string
     type: object
   config.Config:
     properties:
@@ -288,6 +307,48 @@ definitions:
         type: integer
       tls:
         type: boolean
+    type: object
+  services.FontAxis:
+    properties:
+      max:
+        type: number
+      min:
+        type: number
+      tag:
+        type: string
+    type: object
+  services.FontFamily:
+    properties:
+      axes:
+        items:
+          $ref: '#/definitions/services.FontAxis'
+        type: array
+      category:
+        items:
+          type: string
+        type: array
+      description:
+        type: string
+      designer:
+        type: string
+      family:
+        type: string
+      license:
+        type: string
+      source:
+        type: string
+      styles:
+        items:
+          type: string
+        type: array
+      subsets:
+        items:
+          type: string
+        type: array
+      weights:
+        items:
+          type: integer
+        type: array
     type: object
   services.FoundPrinter:
     properties:
@@ -320,16 +381,15 @@ paths:
       - config
   /fonts:
     get:
-      description: Returns list of installed fonts
+      description: Returns the font file names for text labels and the catalog of
+        font families usable as SVG font-family values
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            items:
-              type: string
-            type: array
+            $ref: '#/definitions/api.FontsResponse'
       summary: List available fonts
       tags:
       - fonts

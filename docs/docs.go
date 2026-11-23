@@ -37,7 +37,7 @@ const docTemplate = `{
         },
         "/fonts": {
             "get": {
-                "description": "Returns list of installed fonts",
+                "description": "Returns the font file names for text labels and the catalog of font families usable as SVG font-family values",
                 "produces": [
                     "application/json"
                 ],
@@ -49,10 +49,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/api.FontsResponse"
                         }
                     }
                 }
@@ -731,6 +728,23 @@ const docTemplate = `{
                 }
             }
         },
+        "api.FontsResponse": {
+            "type": "object",
+            "properties": {
+                "families": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/services.FontFamily"
+                    }
+                },
+                "fonts": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
         "api.PreviewRequest": {
             "type": "object",
             "required": [
@@ -1116,11 +1130,23 @@ const docTemplate = `{
                 "defaultPrinter": {
                     "type": "string"
                 },
+                "fontCatalog": {
+                    "type": "string"
+                },
                 "fontDirs": {
                     "type": "array",
                     "items": {
                         "type": "string"
                     }
+                },
+                "svgfontDirs": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "tcpaddress": {
+                    "type": "string"
                 }
             }
         },
@@ -1146,6 +1172,70 @@ const docTemplate = `{
                 },
                 "tls": {
                     "type": "boolean"
+                }
+            }
+        },
+        "services.FontAxis": {
+            "type": "object",
+            "properties": {
+                "max": {
+                    "type": "number"
+                },
+                "min": {
+                    "type": "number"
+                },
+                "tag": {
+                    "type": "string"
+                }
+            }
+        },
+        "services.FontFamily": {
+            "type": "object",
+            "properties": {
+                "axes": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/services.FontAxis"
+                    }
+                },
+                "category": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "description": {
+                    "type": "string"
+                },
+                "designer": {
+                    "type": "string"
+                },
+                "family": {
+                    "type": "string"
+                },
+                "license": {
+                    "type": "string"
+                },
+                "source": {
+                    "type": "string"
+                },
+                "styles": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "subsets": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "weights": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
                 }
             }
         },

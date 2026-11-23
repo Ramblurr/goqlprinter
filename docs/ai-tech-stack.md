@@ -24,7 +24,7 @@
 
 ## Runtime Requirements
 
-- `rsvg-convert` (librsvg2-bin) for SVG rendering
+- `resvg` on PATH for SVG rendering; `serve` fails to start without it
 - USB permissions for direct printer access
 - libusb-dev for USB build tag
 - Font files (.ttf/.otf) in configured directories

@@ -61,12 +61,12 @@ Config priority (low→high):
 |--------|------|---------|
 | GET | `/api/config` | Server configuration |
 | GET | `/api/printers` | Discover printers |
-| GET | `/api/fonts` | List fonts |
+| GET | `/api/fonts` | Text fonts and SVG font families |
 | GET | `/api/label-sizes` | All label formats |
 | GET | `/api/label-sizes/:id` | Single label details |
 | GET | `/api/events` | SSE printer status stream |
 | POST | `/api/print` | Print text/SVG label |
-| POST | `/api/print_svg` | Print SVG (needs rsvg-convert) |
+| POST | `/api/print_svg` | Print SVG (rendered by resvg) |
 | POST | `/api/print_png` | Print base64 PNG |
 | POST | `/api/print_png_raw` | Print uploaded PNG |
 | POST | `/api/print_qr` | Print QR code |
@@ -95,7 +95,7 @@ Config priority (low→high):
 
 ## Common Issues
 - **USB permissions**: Ensure user has USB device access
-- **rsvg-convert missing**: `apt install librsvg2-bin`
+- **resvg missing**: `serve` refuses to start; put the `resvg` binary on PATH
 - **Fonts missing**: Verify font paths in configuration
 
 ## AI Context Docs

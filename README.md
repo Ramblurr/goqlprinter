@@ -31,6 +31,7 @@ Brother QL-500, 550, 560, 570, 580N, 650TD, 700, 710W, 720NW, 800, 810W, 820NWB,
 - Go 1.24+
 - Node.js 18+ (frontend build)
 - [`just`](https://github.com/casey/just) (build tool)
+- [`resvg`](https://github.com/linebender/resvg) on `PATH` at runtime (SVG rendering)
 - USB access permissions for direct printer communication
 
 ## Getting Started
@@ -133,6 +134,14 @@ Example `config.json`:
   }
 }
 ```
+
+SVG labels are rendered by the [resvg](https://github.com/linebender/resvg) binary,
+which must be on `PATH`; `serve` refuses to start without it. SVG text can use only
+the fonts in `app.svg_font_dirs` (system fonts are never loaded), and `app.font_dirs`
+does not apply to SVG. Generic families map to DejaVu (`sans-serif` and the default
+to DejaVu Sans, `serif` to DejaVu Serif, `monospace` to DejaVu Sans Mono), so include
+DejaVu in `app.svg_font_dirs`. `app.font_catalog` optionally names a JSON file
+describing those families; `GET /api/fonts` returns it as `families`.
 
 ## CLI Usage
 
