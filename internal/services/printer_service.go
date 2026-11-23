@@ -120,7 +120,7 @@ func (s *PrinterService) ResolvePrinter(identifier string) (FoundPrinter, error)
 	}
 
 	for _, p := range printers {
-		if p.Model == identifier {
+		if p.Model == identifier || p.UID == identifier {
 			return p, nil
 		}
 	}

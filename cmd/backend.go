@@ -10,6 +10,8 @@ import (
 // InitBackendProvider selects and initializes the appropriate backend provider.
 func InitBackendProvider(cfg *icfg.Config) brotherql.BackendProvider {
 	switch cfg.App.Backend {
+	case "tcp":
+		return brotherql.NewTCPProvider(cfg.App.TCPAddress, cfg.App.DefaultPrinter)
 	case "usb":
 		slog.Info("Using USB backend (gousb/libusb)")
 		return initUSBProvider()

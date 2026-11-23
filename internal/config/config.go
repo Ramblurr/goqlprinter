@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"net"
 	"os"
 	"runtime"
 	"strings"
@@ -30,6 +31,7 @@ type AppConfig struct {
 	Backend        string   `mapstructure:"backend"`
 	DefaultPrinter string   `mapstructure:"default_printer"`
 	FontDirs       []string `mapstructure:"font_dirs"`
+	TCPAddress     string   `mapstructure:"tcp_address"`
 }
 
 // getDefaultFontDirs returns OS-appropriate font directories
@@ -77,6 +79,7 @@ func LoadConfig() (*Config, error) {
 	v.SetDefault("server.host", "localhost")
 	v.SetDefault("app.font_dirs", getDefaultFontDirs())
 	v.SetDefault("app.default_printer", "")
+	v.SetDefault("app.tcp_address", "")
 	v.SetDefault("app.backend", "auto")
 	v.SetDefault("server.tls", false)
 	v.SetDefault("server.cert_file", "")
@@ -106,6 +109,16 @@ func LoadConfig() (*Config, error) {
 	if cfg.Server.TLS {
 		if cfg.Server.CertFile == "" || cfg.Server.KeyFile == "" {
 			return nil, fmt.Errorf("server.tls is enabled but server.cert_file and server.key_file must be set")
+		}
+	}
+
+	if cfg.App.Backend == "tcp" {
+		host, port, err := net.SplitHostPort(cfg.App.TCPAddress)
+		if err != nil || host == "" || port == "" {
+			return nil, fmt.Errorf("app.tcp_address must be a host:port for the TCP backend")
+		}
+		if cfg.App.DefaultPrinter == "" {
+			return nil, fmt.Errorf("app.default_printer must name the printer model for the TCP backend")
 		}
 	}
 
