@@ -4,67 +4,14 @@ import (
 	"context"
 	"fmt"
 	"image"
-	"image/color"
 	"image/draw"
 	"net/http"
-	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/srwiley/oksvg"
-	"github.com/srwiley/rasterx"
 
 	"goqlprinter/brotherql"
 	"goqlprinter/internal/services"
 )
-
-// rasterizeSVG converts SVG content to an image using pure Go (oksvg + rasterx).
-// maxWidth and maxHeight are upper bounds (0 means unconstrained). The SVG is
-// rendered at its natural viewBox dimensions multiplied by scale, then shrunk
-// proportionally to fit within the constraints while preserving aspect ratio.
-func rasterizeSVG(_ context.Context, svg string, maxWidth, maxHeight int, scale float64) (image.Image, error) {
-	icon, err := oksvg.ReadIconStream(strings.NewReader(svg))
-	if err != nil {
-		return nil, fmt.Errorf("SVG parse failed: %w", err)
-	}
-
-	vbW := icon.ViewBox.W
-	vbH := icon.ViewBox.H
-	if vbW <= 0 || vbH <= 0 {
-		return nil, fmt.Errorf("SVG has zero dimensions (viewBox: %.0fx%.0f)", vbW, vbH)
-	}
-
-	// Start with natural dimensions scaled.
-	w := vbW * scale
-	h := vbH * scale
-
-	// Shrink proportionally to fit within constraints.
-	if maxWidth > 0 && w > float64(maxWidth) {
-		ratio := float64(maxWidth) / w
-		w = float64(maxWidth)
-		h *= ratio
-	}
-	if maxHeight > 0 && h > float64(maxHeight) {
-		ratio := float64(maxHeight) / h
-		h = float64(maxHeight)
-		w *= ratio
-	}
-
-	iw, ih := int(w), int(h)
-	if iw <= 0 || ih <= 0 {
-		return nil, fmt.Errorf("SVG has zero dimensions after scaling (viewBox: %.0fx%.0f, scale: %.2f)", vbW, vbH, scale)
-	}
-
-	rgba := image.NewRGBA(image.Rect(0, 0, iw, ih))
-	// Fill white background
-	draw.Draw(rgba, rgba.Bounds(), image.NewUniform(color.White), image.Point{}, draw.Src)
-
-	icon.SetTarget(0, 0, w, h)
-	scanner := rasterx.NewScannerGV(iw, ih, rgba, rgba.Bounds())
-	dasher := rasterx.NewDasher(iw, ih, scanner)
-	icon.Draw(dasher, 1.0)
-
-	return rgba, nil
-}
 
 func convertToGrayscale(img image.Image) *image.Gray {
 	bounds := img.Bounds()
@@ -112,7 +59,7 @@ func (h *Handlers) PrintSVG(c *gin.Context) {
 		return
 	}
 
-	img, err := processSVG(c.Request.Context(), req, label)
+	img, err := h.processSVG(c.Request.Context(), req, label)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -141,7 +88,7 @@ func (h *Handlers) PrintSVG(c *gin.Context) {
 // The SVG is rendered at its natural aspect ratio (scaled by svg_scale),
 // fitted within the printable area, and positioned according to alignment
 // — matching the approach used for text labels.
-func processSVG(ctx context.Context, req PrintSVGRequest, label brotherql.LabelSize) (*image.Gray, error) {
+func (h *Handlers) processSVG(ctx context.Context, req PrintSVGRequest, label brotherql.LabelSize) (*image.Gray, error) {
 	isRotated := req.Orientation == orientRotated
 
 	scale := req.SVGScale
@@ -173,7 +120,7 @@ func processSVG(ctx context.Context, req PrintSVGRequest, label brotherql.LabelS
 		}
 	}
 
-	svgImg, err := rasterizeSVG(ctx, req.SVGData, maxWidth, maxHeight, scale)
+	svgImg, err := h.SVG.Render(ctx, req.SVGData, maxWidth, maxHeight, scale)
 	if err != nil {
 		return nil, fmt.Errorf("SVG processing failed: %w", err)
 	}

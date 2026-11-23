@@ -50,7 +50,21 @@ func newTestHandlers(printers []brotherql.PrinterInfo) *api.Handlers {
 	cfg.App.FontDirs = []string{}
 	ps := services.NewPrinterService(&mockProvider{printers: printers})
 	fs := services.NewFontService([]string{})
-	return api.NewHandlers(ps, fs, cfg)
+	return api.NewHandlers(ps, fs, nil, cfg)
+}
+
+// newSVGTestHandlers creates a Handlers that renders SVG with resvg, loading
+// fonts only from fontDirs. It skips the test when resvg is not on PATH.
+func newSVGTestHandlers(t *testing.T, fontDirs []string) *api.Handlers {
+	t.Helper()
+	svg, err := services.NewSVGRenderer(fontDirs)
+	if err != nil {
+		t.Skipf("skipping: %v", err)
+	}
+	cfg := &config.Config{}
+	ps := services.NewPrinterService(&mockProvider{})
+	fs := services.NewFontService([]string{})
+	return api.NewHandlers(ps, fs, svg, cfg)
 }
 
 // newTestHandlersWithError creates a Handlers whose provider always returns err.
@@ -58,5 +72,5 @@ func newTestHandlersWithError(err error) *api.Handlers {
 	cfg := &config.Config{}
 	ps := services.NewPrinterService(&mockProvider{err: err})
 	fs := services.NewFontService([]string{})
-	return api.NewHandlers(ps, fs, cfg)
+	return api.NewHandlers(ps, fs, nil, cfg)
 }

@@ -52,6 +52,7 @@ func TestGetStatus_UsesBackendIPPStatus(t *testing.T) {
 	h := api.NewHandlers(
 		services.NewPrinterService(&singleBackendProvider{backend: backend}),
 		services.NewFontService([]string{}),
+		nil,
 		&config.Config{},
 	)
 	r := gin.New()
@@ -91,6 +92,7 @@ func TestGetStatus_KeepsRawStatusRequestForOSStatusProviders(t *testing.T) {
 	h := api.NewHandlers(
 		services.NewPrinterService(&singleBackendProvider{backend: backend}),
 		services.NewFontService([]string{}),
+		nil,
 		&config.Config{},
 	)
 	r := gin.New()

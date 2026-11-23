@@ -216,7 +216,7 @@ func (h *Handlers) PrintLabel(c *gin.Context) {
 			VerticalAlignment:   req.VerticalAlignment,
 			CustomHeightMM:      req.CustomHeightMM,
 		}
-		img, err = processSVG(c.Request.Context(), svgReq, label)
+		img, err = h.processSVG(c.Request.Context(), svgReq, label)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return

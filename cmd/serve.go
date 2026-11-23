@@ -63,7 +63,11 @@ func setupApp(useAuth bool) (*icfg.Config, *gin.Engine, error) {
 	ps.InitializeDefaultPrinter(cfg.App.DefaultPrinter)
 
 	fs := isvc.NewFontService(cfg.App.FontDirs)
-	handlers := api.NewHandlers(ps, fs, cfg)
+	svg, err := isvc.NewSVGRenderer(cfg.App.SVGFontDirs)
+	if err != nil {
+		return nil, nil, err
+	}
+	handlers := api.NewHandlers(ps, fs, svg, cfg)
 	sseHub := api.NewSSEHub(ps)
 
 	if os.Getenv("GIN_MODE") == "" {
