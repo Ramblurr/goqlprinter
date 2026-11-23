@@ -4,12 +4,13 @@ import (
 	"bytes"
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"image"
 	"image/png"
 	"net/http"
-	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/gin-gonic/gin"
@@ -39,20 +40,23 @@ func TestPreviewSVG_RefusesReferencesToServerFiles(t *testing.T) {
 	if err := os.WriteFile(secret, blackPNG(t), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	for name, svg := range map[string]string{
-		"image href": `<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><image href="` + secret + `" width="40" height="40"/></svg>`,
-		"image xlink:href": `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="40" height="40">` +
-			`<image xlink:href="` + secret + `" width="40" height="40"/></svg>`,
-		"relative image": `<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><image href="secret.png" width="40" height="40"/></svg>`,
+	for _, tc := range []struct{ name, href, svg string }{
+		{"image href", secret, `<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><image href="` + secret + `" width="40" height="40"/></svg>`},
+		{"image xlink:href", secret, `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="40" height="40">` +
+			`<image xlink:href="` + secret + `" width="40" height="40"/></svg>`},
+		{"relative image", "secret.png", `<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><image href="secret.png" width="40" height="40"/></svg>`},
 	} {
-		t.Run(name, func(t *testing.T) {
-			raw, _ := json.Marshal(map[string]any{"label_size": "12", "svg_data": svg})
-			w := httptest.NewRecorder()
-			req := httptest.NewRequest(http.MethodPost, "/api/preview", bytes.NewReader(raw))
-			req.Header.Set("Content-Type", "application/json")
-			r.ServeHTTP(w, req)
-			if w.Code == http.StatusOK {
-				t.Fatalf("preview of an SVG referencing %s succeeded; want it refused", secret)
+		t.Run(tc.name, func(t *testing.T) {
+			w := postJSON(t, r, "/api/preview", map[string]any{"label_size": "12", "svg_data": tc.svg})
+			var resp struct {
+				Error string `json:"error"`
+			}
+			if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+				t.Fatalf("preview status %d, body %s: %v", w.Code, w.Body.String(), err)
+			}
+			want := fmt.Sprintf("SVG references %q; only #fragment and data: references are allowed", tc.href)
+			if w.Code == http.StatusOK || !strings.Contains(resp.Error, want) {
+				t.Fatalf("preview status %d, error %q; want the reference refused with %q", w.Code, resp.Error, want)
 			}
 		})
 	}
@@ -70,5 +74,27 @@ func TestPreviewSVG_EmbedsDataURIImages(t *testing.T) {
 	img := previewSVG(t, r, map[string]any{"label_size": "12", "svg_data": svg})
 	if inkPixels(img) == 0 {
 		t.Fatal("embedded data: URI image rendered no ink")
+	}
+}
+
+// Fragment and data: references pass the reference check, so resvg must not
+// resolve them as paths relative to the server's working directory.
+func TestPreviewSVG_DoesNotLoadAllowedReferencesAsFiles(t *testing.T) {
+	cwd := t.TempDir()
+	t.Chdir(cwd)
+	h := newSVGTestHandlers(t, nil)
+	r := gin.New()
+	r.POST("/api/preview", h.PreviewLabel)
+
+	for _, href := range []string{"#ink.png", "data:ink.png"} {
+		t.Run(href, func(t *testing.T) {
+			if err := os.WriteFile(filepath.Join(cwd, href), blackPNG(t), 0o644); err != nil {
+				t.Fatal(err)
+			}
+			svg := `<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><image href="` + href + `" width="40" height="40"/></svg>`
+			if got := inkPixels(previewSVG(t, r, map[string]any{"label_size": "12", "svg_data": svg})); got != 0 {
+				t.Fatalf("SVG image %q rendered %d ink pixels from a file in the working directory, want 0", href, got)
+			}
+		})
 	}
 }
