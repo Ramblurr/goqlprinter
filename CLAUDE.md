@@ -70,7 +70,7 @@ Config priority (low→high):
 | POST | `/api/print_png` | Print base64 PNG |
 | POST | `/api/print_png_raw` | Print uploaded PNG |
 | POST | `/api/print_qr` | Print QR code |
-| POST | `/api/preview` | Return base64 PNG preview |
+| POST | `/api/preview` | Return base64 PNG preview and its ink mask (`ink_image`) |
 | POST | `/api/status` | Printer status |
 | POST | `/api/test/*` | Debug: invalidate/init/feed |
 | GET | `/swagger/*` | Swagger UI docs |

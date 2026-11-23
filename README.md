@@ -227,7 +227,7 @@ The server exposes a REST API at port 8000 (default):
 | POST | `/api/print_qr` | Print QR code |
 | POST | `/api/print_svg` | Print SVG |
 | POST | `/api/print_png` | Print PNG |
-| POST | `/api/preview` | Get PNG preview |
+| POST | `/api/preview` | Get PNG preview and the dots that will print (`ink_image`) |
 | POST | `/api/status` | Query printer status |
 
 Swagger UI available at `/swagger/index.html`.

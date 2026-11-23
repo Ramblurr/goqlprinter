@@ -63,6 +63,10 @@ definitions:
       image:
         description: Base64 data URL
         type: string
+      ink_image:
+        description: 'Base64 data URL of the same size as image: black where the printer
+          burns a dot, white elsewhere'
+        type: string
       printable_height:
         description: Printable area height
         type: integer
@@ -412,7 +416,8 @@ paths:
     post:
       consumes:
       - application/json
-      description: Renders a label preview and returns it as a base64-encoded PNG
+      description: Renders a label preview and returns it as a base64-encoded PNG,
+        with ink_image showing exactly the dots the printer will burn
       parameters:
       - description: Preview request parameters
         in: body

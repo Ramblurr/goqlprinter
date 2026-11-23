@@ -80,7 +80,7 @@ const docTemplate = `{
         },
         "/preview": {
             "post": {
-                "description": "Renders a label preview and returns it as a base64-encoded PNG",
+                "description": "Renders a label preview and returns it as a base64-encoded PNG, with ink_image showing exactly the dots the printer will burn",
                 "consumes": [
                     "application/json"
                 ],
@@ -810,6 +810,10 @@ const docTemplate = `{
                 },
                 "image": {
                     "description": "Base64 data URL",
+                    "type": "string"
+                },
+                "ink_image": {
+                    "description": "Base64 data URL of the same size as image: black where the printer burns a dot, white elsewhere",
                     "type": "string"
                 },
                 "printable_height": {

@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"image"
+	"image/color"
 	"image/draw"
 	"image/png"
 	"log/slog"
@@ -159,7 +160,7 @@ func (p *BrotherQL) Print(img image.Image, label LabelSize) error {
 			}
 			for y := startY; y < endY; y++ {
 				for x := bounds.Min.X; x < bounds.Max.X; x++ {
-					if flippedImg.GrayAt(x, y).Y < 250 {
+					if isInk(flippedImg.GrayAt(x, y)) {
 						blackPixels++
 					}
 				}
@@ -426,6 +427,26 @@ func packBits(data []byte) []byte {
 	return compressed.Bytes()
 }
 
+// isInk reports whether the printer burns a dot for a pixel of this gray.
+// Only near-white counts as paper, so faint grays print as solid black.
+func isInk(c color.Gray) bool {
+	return c.Y < 250
+}
+
+// InkMask returns img with every pixel the printer burns set to black and
+// every other pixel set to white.
+func InkMask(img *image.Gray) *image.Gray {
+	mask := image.NewGray(img.Rect)
+	for y := img.Rect.Min.Y; y < img.Rect.Max.Y; y++ {
+		for x := img.Rect.Min.X; x < img.Rect.Max.X; x++ {
+			if !isInk(img.GrayAt(x, y)) {
+				mask.SetGray(x, y, color.Gray{Y: 0xff})
+			}
+		}
+	}
+	return mask
+}
+
 // rasterize converts an image to the printer's raster format.
 // bytesPerRow is the fixed row width required by the printer model.
 // printableWidth limits how many pixels are sampled per row.
@@ -450,9 +471,7 @@ func (p *BrotherQL) rasterize(img image.Image, bytesPerRow int, printableWidth i
 
 		for x := range loopWidth {
 			// Protocol: black = bit 1, white = bit 0.
-			// image.Gray: black = 0, white = 255.
-			// Any pixel that is not fully white is printed as black.
-			if grayImg.GrayAt(x, y).Y < 250 {
+			if isInk(grayImg.GrayAt(x, y)) {
 				byteIndex := x / 8
 				bitIndex := 7 - (x % 8)
 				rowData[byteIndex] |= 1 << bitIndex

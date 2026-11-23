@@ -35,6 +35,7 @@ type PreviewRequest struct {
 // PreviewResponse defines the response structure
 type PreviewResponse struct {
 	Image           string `json:"image"`            // Base64 data URL
+	InkImage        string `json:"ink_image"`        // Base64 data URL of the same size as image: black where the printer burns a dot, white elsewhere
 	Width           int    `json:"width"`            // Image width in pixels
 	Height          int    `json:"height"`           // Image height in pixels
 	PrintableWidth  int    `json:"printable_width"`  // Printable area width
@@ -43,7 +44,7 @@ type PreviewResponse struct {
 
 // PreviewLabel godoc
 // @Summary Preview a label without printing
-// @Description Renders a label preview and returns it as a base64-encoded PNG
+// @Description Renders a label preview and returns it as a base64-encoded PNG, with ink_image showing exactly the dots the printer will burn
 // @Tags preview
 // @Accept json
 // @Produce json
@@ -136,20 +137,27 @@ func (h *Handlers) PreviewLabel(c *gin.Context) {
 		}
 	}
 
-	var buf bytes.Buffer
-	if err := png.Encode(&buf, img); err != nil {
+	imageURL, errImage := pngDataURL(img)
+	inkURL, errInk := pngDataURL(brotherql.InkMask(img))
+	if errImage != nil || errInk != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to encode image"})
 		return
 	}
 
-	base64Img := base64.StdEncoding.EncodeToString(buf.Bytes())
-	dataURL := "data:image/png;base64," + base64Img
-
 	c.JSON(http.StatusOK, PreviewResponse{
-		Image:           dataURL,
+		Image:           imageURL,
+		InkImage:        inkURL,
 		Width:           img.Bounds().Dx(),
 		Height:          img.Bounds().Dy(),
 		PrintableWidth:  label.DotsPrintableWidth,
 		PrintableHeight: label.DotsPrintableHeight,
 	})
+}
+
+func pngDataURL(img image.Image) (string, error) {
+	var buf bytes.Buffer
+	if err := png.Encode(&buf, img); err != nil {
+		return "", err
+	}
+	return "data:image/png;base64," + base64.StdEncoding.EncodeToString(buf.Bytes()), nil
 }
