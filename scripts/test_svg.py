@@ -44,6 +44,10 @@ SVG_ASYMMETRIC = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 100
 H_ALIGNMENTS = ["start", "center", "end"]
 V_ALIGNMENTS = ["start", "center", "end"]
 LABEL_SIZES = ["62", "62x29"]  # continuous + die-cut
+
+# brother_ql offset_r for these labels on the default QL-810W: the tape area in
+# the debug raster starts this many dots in from the edge.
+HEAD_OFFSET = {"62": 12, "62x29": 12, "29": 6}
 SCALES = [0.5, 1.0, 1.5]
 
 
@@ -401,7 +405,9 @@ def test_raster_tape_centering() -> list[str]:
                 print(f"    h_align={h_align:6s}  FAILED: no dark content in raster")
                 continue
 
-            # Content center_x in raster image coordinates (tape area: 0..printable_width-1)
+            offset = HEAD_OFFSET[label_size]
+            raster_bbox = (raster_bbox[0] - offset, raster_bbox[1], raster_bbox[2] - offset, raster_bbox[3])
+            # Content center_x in tape coordinates (0..printable_width-1)
             raster_center_x = (raster_bbox[0] + raster_bbox[2]) / 2.0
 
             # Expected raster position: mirror of preview within tape area

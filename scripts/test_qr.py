@@ -24,6 +24,10 @@ CONFIG = {"base_url": "http://localhost:8000"}
 OUTPUT_DIR = "debug_output"
 
 LABEL_SIZES = ["62", "62x29", "29"]  # continuous wide, die-cut, continuous narrow
+
+# brother_ql offset_r for these labels on the default QL-810W: the tape area in
+# the debug raster starts this many dots in from the edge.
+HEAD_OFFSET = {"62": 12, "62x29": 12, "29": 6}
 QR_DATA_SHORT = "https://example.com"
 QR_DATA_LONG = "https://example.com/this-is-a-much-longer-url-to-test-qr-density-and-scaling-behavior"
 
@@ -246,6 +250,8 @@ def test_centering() -> list[str]:
                     # not the full raster width (which includes off-tape pixels).
                     tape_w = w  # preview width = printable tape width
                     rx0, ry0, rx1, ry1 = r_bbox
+                    rx0 -= HEAD_OFFSET[label_size]
+                    rx1 -= HEAD_OFFSET[label_size]
                     r_margin_l = rx0
                     r_margin_r = tape_w - 1 - rx1
                     r_margin_diff = abs(r_margin_l - r_margin_r)
