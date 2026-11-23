@@ -5,7 +5,9 @@ import (
 	"fmt"
 )
 
-// MaxLabelLengthMM is the longest label any supported QL printer prints.
+// MaxLabelLengthMM caps every label at 1 m, the longest label the 62 mm
+// models print. The 102 mm models accept up to 3 m; the cap gives that up to
+// keep a rendered label under about 12k x 1.2k pixels.
 const MaxLabelLengthMM = 1000
 
 // PrinterModel holds model-specific protocol parameters.

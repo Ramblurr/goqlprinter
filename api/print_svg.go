@@ -102,7 +102,7 @@ func (h *Handlers) processSVG(ctx context.Context, req PrintSVGRequest, label br
 	var tapeLengthDots int
 	if req.CustomHeightMM > 0 && !label.IsDieCut {
 		if req.CustomHeightMM > brotherql.MaxLabelLengthMM {
-			return nil, fmt.Errorf("custom_height_mm %g exceeds the %d mm the printer can print", req.CustomHeightMM, brotherql.MaxLabelLengthMM)
+			return nil, fmt.Errorf("custom_height_mm %g exceeds the %d mm label length limit", req.CustomHeightMM, brotherql.MaxLabelLengthMM)
 		}
 		tapeLengthDots = mmToDots(req.CustomHeightMM)
 	} else {
