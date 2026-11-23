@@ -49,6 +49,15 @@ func (h *Handlers) GetStatus(c *gin.Context) {
 	statusCh := make(chan StatusResponse, 1)
 
 	if err := services.ConnectToPrinter(h.Printers, req.Printer, "", func(backend brotherql.Backend, model string) error {
+		if sp, ok := backend.(brotherql.StatusProvider); ok {
+			status, err := sp.GetStatus()
+			if err != nil {
+				return fmt.Errorf("failed to get status: %w", err)
+			}
+			statusCh <- StatusResponse{Status: status}
+			return nil
+		}
+
 		type ReadTimeoutSetter interface {
 			SetReadTimeout(d time.Duration)
 		}
