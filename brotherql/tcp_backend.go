@@ -40,9 +40,8 @@ func (p *TCPProvider) Connect(printer PrinterInfo) (Backend, error) {
 	}
 	host, _, _ := net.SplitHostPort(p.address)
 	return &tcpBackend{
-		Conn:        conn,
-		readTimeout: tcpIOTimeout,
-		ippURL:      "http://" + net.JoinHostPort(host, "631") + "/ipp/print",
+		Conn:   conn,
+		ippURL: "http://" + net.JoinHostPort(host, "631") + "/ipp/print",
 	}, nil
 }
 
@@ -50,9 +49,7 @@ func (p *TCPProvider) SupportsStatus() bool { return false }
 
 type tcpBackend struct {
 	net.Conn
-	readTimeout     time.Duration
-	readDeadlineSet bool
-	ippURL          string
+	ippURL string
 }
 
 // GetStatus asks over IPP because the printer never answers ESC i S on the raw port.
@@ -60,23 +57,12 @@ func (b *tcpBackend) GetStatus() (PrinterStatus, error) {
 	return queryIPPStatus(b.ippURL)
 }
 
-func (b *tcpBackend) SetReadTimeout(timeout time.Duration) {
-	b.readTimeout = timeout
-	b.readDeadlineSet = false
-}
-
-func (b *tcpBackend) Read(data []byte) (int, error) {
-	if !b.readDeadlineSet {
-		if err := b.SetReadDeadline(time.Now().Add(b.readTimeout)); err != nil {
-			return 0, err
-		}
-		b.readDeadlineSet = true
-	}
-	return b.Conn.Read(data)
+// Read fails at once because port 9100 never sends data back.
+func (b *tcpBackend) Read([]byte) (int, error) {
+	return 0, ErrStatusNotSupported
 }
 
 func (b *tcpBackend) Write(data []byte) (int, error) {
-	b.readDeadlineSet = false
 	if err := b.SetWriteDeadline(time.Now().Add(tcpIOTimeout)); err != nil {
 		return 0, err
 	}
