@@ -20,6 +20,15 @@ const (
 	ippStateStopped    = 5
 )
 
+const (
+	escMediaNone       byte = 0x00
+	escMediaContinuous byte = 0x0A
+	escMediaDieCut     byte = 0x0B
+	escStatusReply     byte = 0x00
+	escPhaseWaiting    byte = 0x00
+	escPhasePrinting   byte = 0x01
+)
+
 var ippStatusClient = &http.Client{Timeout: 2 * time.Second}
 
 var ippStatusAttributes = []string{
@@ -77,8 +86,8 @@ func queryIPPStatus(url string) (PrinterStatus, error) {
 func statusFromIPP(attrs ipp.Attributes) PrinterStatus {
 	status := PrinterStatus{
 		ModelName:  strings.TrimPrefix(ippString(attrs, ipp.AttributePrinterMakeAndModel), "Brother "),
-		MediaType:  statusMediaTypes[0x00],
-		StatusType: statusTypes[0x00],
+		MediaType:  statusMediaTypes[escMediaNone],
+		StatusType: statusTypes[escStatusReply],
 		Errors:     []string{},
 	}
 
@@ -87,9 +96,9 @@ func statusFromIPP(attrs ipp.Attributes) PrinterStatus {
 		status.MediaWidth = width
 		status.MediaLength = length
 		if length == 0 {
-			status.MediaType = statusMediaTypes[0x0A]
+			status.MediaType = statusMediaTypes[escMediaContinuous]
 		} else {
-			status.MediaType = statusMediaTypes[0x0B]
+			status.MediaType = statusMediaTypes[escMediaDieCut]
 		}
 	}
 
@@ -112,10 +121,10 @@ func statusFromIPP(attrs ipp.Attributes) PrinterStatus {
 	switch state {
 	case ippStateIdle:
 		status.Ready = true
-		status.PhaseType = statusPhaseTypes[0x00]
+		status.PhaseType = statusPhaseTypes[escPhaseWaiting]
 	case ippStateProcessing:
 		status.Busy = true
-		status.PhaseType = statusPhaseTypes[0x01]
+		status.PhaseType = statusPhaseTypes[escPhasePrinting]
 	case ippStateStopped:
 		if len(status.Errors) == 0 {
 			status.Errors = append(status.Errors, "stopped")
