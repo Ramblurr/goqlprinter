@@ -53,8 +53,6 @@ func newTestHandlers(printers []brotherql.PrinterInfo) *api.Handlers {
 	return api.NewHandlers(ps, fs, nil, []services.FontFamily{}, cfg)
 }
 
-// newSVGTestHandlers creates a Handlers that renders SVG with resvg, loading
-// fonts only from fontDirs. It skips the test when resvg is not on PATH.
 func newSVGTestHandlers(t *testing.T, fontDirs []string) *api.Handlers {
 	t.Helper()
 	svg, err := services.NewSVGRenderer(fontDirs)
