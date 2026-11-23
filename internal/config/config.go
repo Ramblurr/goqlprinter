@@ -31,6 +31,8 @@ type AppConfig struct {
 	Backend        string   `mapstructure:"backend"`
 	DefaultPrinter string   `mapstructure:"default_printer"`
 	FontDirs       []string `mapstructure:"font_dirs"`
+	SVGFontDirs    []string `mapstructure:"svg_font_dirs"`
+	FontCatalog    string   `mapstructure:"font_catalog"`
 	TCPAddress     string   `mapstructure:"tcp_address"`
 }
 
@@ -78,6 +80,8 @@ func LoadConfig() (*Config, error) {
 	v.SetDefault("server.port", 8080)
 	v.SetDefault("server.host", "localhost")
 	v.SetDefault("app.font_dirs", getDefaultFontDirs())
+	v.SetDefault("app.svg_font_dirs", []string{})
+	v.SetDefault("app.font_catalog", "")
 	v.SetDefault("app.default_printer", "")
 	v.SetDefault("app.tcp_address", "")
 	v.SetDefault("app.backend", "auto")
@@ -141,6 +145,8 @@ func logConfigSources(v *viper.Viper, cfg *Config) {
 	logConfigValue(v, "app.backend", cfg.App.Backend)
 	logConfigValue(v, "app.default_printer", cfg.App.DefaultPrinter)
 	slog.Info("Configuration value", "key", "app.font_dirs", "value", cfg.App.FontDirs)
+	slog.Info("Configuration value", "key", "app.svg_font_dirs", "value", cfg.App.SVGFontDirs)
+	logConfigValue(v, "app.font_catalog", cfg.App.FontCatalog)
 }
 
 func logConfigValue(v *viper.Viper, key string, value string) {
