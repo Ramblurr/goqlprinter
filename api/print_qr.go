@@ -190,7 +190,7 @@ func (h *Handlers) PrintQR(c *gin.Context) {
 	}
 
 	if req.Printer == printerFile {
-		saveDebugOutput(c, img, "label_qr", req.Model, req.Orientation)
+		saveDebugOutput(c, img, label, "label_qr", req.Model, req.Orientation)
 		return
 	}
 

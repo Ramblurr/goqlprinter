@@ -70,7 +70,7 @@ func (h *Handlers) PrintSVG(c *gin.Context) {
 
 func (h *Handlers) printSVGLabel(c *gin.Context, req PrintSVGRequest, img *image.Gray, label brotherql.LabelSize) {
 	if req.Printer == printerFile {
-		saveDebugOutput(c, img, "label_svg", req.Model, req.Orientation)
+		saveDebugOutput(c, img, label, "label_svg", req.Model, req.Orientation)
 		return
 	}
 

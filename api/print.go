@@ -59,7 +59,7 @@ func rotateForPrinter(img *image.Gray, orientation string) *image.Gray {
 // saveDebugOutput saves img to a debug PNG file (and its raster variant) and
 // writes a JSON response. It is used by all print handlers when printer == printerFile.
 // orientation controls whether the raster variant is rotated to match the print head.
-func saveDebugOutput(c *gin.Context, img *image.Gray, prefix string, model string, orientation string) {
+func saveDebugOutput(c *gin.Context, img *image.Gray, label brotherql.LabelSize, prefix string, model string, orientation string) {
 	timestamp := time.Now().Format("20060102150405")
 	filename := fmt.Sprintf("debug_output/%s_%s.png", prefix, timestamp)
 	err := brotherql.SaveImageToFile(img, filename)
@@ -67,14 +67,14 @@ func saveDebugOutput(c *gin.Context, img *image.Gray, prefix string, model strin
 		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to save image to file: %v", err)})
 		return
 	}
-	// Also save the raster as the printer would receive it (right-align + flip).
+	// Also save the raster as the printer would receive it.
 	rasterFile := fmt.Sprintf("debug_output/%s_%s_raster.png", prefix, timestamp)
 	modelName := model
 	if modelName == "" {
 		modelName = defaultModel
 	}
 	printImg := rotateForPrinter(img, orientation)
-	if rasterImg, err := brotherql.PrepareForPrint(printImg, modelName); err == nil {
+	if rasterImg, err := brotherql.PrepareForPrint(printImg, label, modelName); err == nil {
 		_ = brotherql.SaveImageToFile(rasterImg, rasterFile)
 	}
 	c.JSON(http.StatusOK, gin.H{
@@ -231,7 +231,7 @@ func (h *Handlers) PrintLabel(c *gin.Context) {
 	}
 
 	if req.Printer == printerFile {
-		saveDebugOutput(c, img, "label", req.Model, req.Orientation)
+		saveDebugOutput(c, img, label, "label", req.Model, req.Orientation)
 		return
 	}
 

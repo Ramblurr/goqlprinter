@@ -62,7 +62,7 @@ func (h *Handlers) PrintPNGLabel(c *gin.Context) {
 	}
 
 	if payload.Printer == printerFile {
-		saveDebugOutput(c, grayImg, "label_png", payload.Model, payload.Orientation)
+		saveDebugOutput(c, grayImg, label, "label_png", payload.Model, payload.Orientation)
 		return
 	}
 
