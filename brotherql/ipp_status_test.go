@@ -112,9 +112,11 @@ func TestStatusFromIPP(t *testing.T) {
 }
 
 func TestQueryIPPStatusOverHTTP(t *testing.T) {
-	// go-ipp encodes only attributes in its tag mapping, and media-ready is not one.
+	// go-ipp encodes only attributes in its tag mapping, which lacks these two.
 	ipp.AttributeTagMapping["media-ready"] = ipp.TagKeyword
+	ipp.AttributeTagMapping[ipp.AttributePrinterMakeAndModel] = ipp.TagText
 	defer delete(ipp.AttributeTagMapping, "media-ready")
+	defer delete(ipp.AttributeTagMapping, ipp.AttributePrinterMakeAndModel)
 
 	var gotOp int16
 	var gotPrinterURI any

@@ -38,7 +38,12 @@ func (p *TCPProvider) Connect(printer PrinterInfo) (Backend, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &tcpBackend{Conn: conn, readTimeout: tcpIOTimeout}, nil
+	host, _, _ := net.SplitHostPort(p.address)
+	return &tcpBackend{
+		Conn:        conn,
+		readTimeout: tcpIOTimeout,
+		ippURL:      "http://" + net.JoinHostPort(host, "631") + "/ipp/print",
+	}, nil
 }
 
 func (p *TCPProvider) SupportsStatus() bool { return false }
@@ -47,6 +52,12 @@ type tcpBackend struct {
 	net.Conn
 	readTimeout     time.Duration
 	readDeadlineSet bool
+	ippURL          string
+}
+
+// GetStatus asks over IPP because the printer never answers ESC i S on the raw port.
+func (b *tcpBackend) GetStatus() (PrinterStatus, error) {
+	return queryIPPStatus(b.ippURL)
 }
 
 func (b *tcpBackend) SetReadTimeout(timeout time.Duration) {
