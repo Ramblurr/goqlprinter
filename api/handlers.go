@@ -8,13 +8,14 @@ import (
 
 // Handlers holds all dependencies for the API layer.
 type Handlers struct {
-	Printers *services.PrinterService
-	Fonts    *services.FontService
-	SVG      *services.SVGRenderer
-	Config   *config.Config
+	Printers     *services.PrinterService
+	Fonts        *services.FontService
+	SVG          *services.SVGRenderer
+	FontFamilies []services.FontFamily
+	Config       *config.Config
 }
 
 // NewHandlers creates a new Handlers with all dependencies injected.
-func NewHandlers(ps *services.PrinterService, fs *services.FontService, svg *services.SVGRenderer, cfg *config.Config) *Handlers {
-	return &Handlers{Printers: ps, Fonts: fs, SVG: svg, Config: cfg}
+func NewHandlers(ps *services.PrinterService, fs *services.FontService, svg *services.SVGRenderer, families []services.FontFamily, cfg *config.Config) *Handlers {
+	return &Handlers{Printers: ps, Fonts: fs, SVG: svg, FontFamilies: families, Config: cfg}
 }

@@ -50,7 +50,7 @@ func newTestHandlers(printers []brotherql.PrinterInfo) *api.Handlers {
 	cfg.App.FontDirs = []string{}
 	ps := services.NewPrinterService(&mockProvider{printers: printers})
 	fs := services.NewFontService([]string{})
-	return api.NewHandlers(ps, fs, nil, cfg)
+	return api.NewHandlers(ps, fs, nil, []services.FontFamily{}, cfg)
 }
 
 // newSVGTestHandlers creates a Handlers that renders SVG with resvg, loading
@@ -64,7 +64,7 @@ func newSVGTestHandlers(t *testing.T, fontDirs []string) *api.Handlers {
 	cfg := &config.Config{}
 	ps := services.NewPrinterService(&mockProvider{})
 	fs := services.NewFontService([]string{})
-	return api.NewHandlers(ps, fs, svg, cfg)
+	return api.NewHandlers(ps, fs, svg, []services.FontFamily{}, cfg)
 }
 
 // newTestHandlersWithError creates a Handlers whose provider always returns err.
@@ -72,5 +72,5 @@ func newTestHandlersWithError(err error) *api.Handlers {
 	cfg := &config.Config{}
 	ps := services.NewPrinterService(&mockProvider{err: err})
 	fs := services.NewFontService([]string{})
-	return api.NewHandlers(ps, fs, nil, cfg)
+	return api.NewHandlers(ps, fs, nil, []services.FontFamily{}, cfg)
 }

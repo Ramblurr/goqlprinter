@@ -67,7 +67,11 @@ func setupApp(useAuth bool) (*icfg.Config, *gin.Engine, error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	handlers := api.NewHandlers(ps, fs, svg, cfg)
+	families, err := isvc.LoadFontCatalog(cfg.App.FontCatalog)
+	if err != nil {
+		return nil, nil, err
+	}
+	handlers := api.NewHandlers(ps, fs, svg, families, cfg)
 	sseHub := api.NewSSEHub(ps)
 
 	if os.Getenv("GIN_MODE") == "" {
