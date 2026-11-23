@@ -136,11 +136,33 @@ func statusFromIPP(attrs ipp.Attributes) PrinterStatus {
 
 func ippString(attrs ipp.Attributes, name string) string {
 	for _, attr := range attrs[name] {
-		if s, ok := attr.Value.(string); ok && s != "" {
+		s, _ := attr.Value.(string)
+		if attr.Tag == ipp.TagTextLang || attr.Tag == ipp.TagNameLang {
+			s = withoutLanguage(s)
+		}
+		if s != "" {
 			return s
 		}
 	}
 	return ""
+}
+
+// withoutLanguage returns the text of a textWithLanguage or nameWithLanguage
+// value, which go-ipp leaves as two length-prefixed strings: language, text.
+func withoutLanguage(v string) string {
+	if len(v) < 2 {
+		return ""
+	}
+	start := 2 + (int(v[0])<<8 | int(v[1]))
+	if len(v) < start+2 {
+		return ""
+	}
+	text := v[start:]
+	n := int(text[0])<<8 | int(text[1])
+	if len(text) < 2+n {
+		return ""
+	}
+	return text[2 : 2+n]
 }
 
 // parseMediaSize reads the dimensions from a PWG media name such as
